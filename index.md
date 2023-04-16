@@ -26,52 +26,81 @@ Se ha implementado un algoritmo recursivo que devuelve la primera opción de sum
 Ejemplo de ejecución:
 
 ![Ej1 Resultado Ejecución](Assets/Imgs/Ej1Result.png)
-# Ejercicio 2 - Números complejos
+# Ejercicio 2 - Contador de líneas, palabras y caracteres en ficheros de texto desde la línea de comandos
 
 ## Enunciado
 
-Defina un tipo de datos para números complejos y escriba funciones para operaciones básicas (suma, resta, multiplicación, división), producto escalar, conjugado y módulo.
+El objetivo es crear una aplicación que permita contar líneas, palabras y caracteres de un fichero de texto, recibiendo la ruta del archivo como parámetro desde la línea de comandos. Además, se debe poder indicar desde la línea de comandos qué información se desea mostrar. Se pide implementar el ejercicio de dos formas diferentes: usando el método pipe de un Stream y creando subprocesos sin usar pipe, registrando los manejadores necesarios para implementar la funcionalidad.
 
 ## Implementación
-## Desarrollo de pruebas para la metodología TDD
 
-Se contempla la siguiente estructura base:
 ```
-/**
- * Definición del tipo de datos para el número completo, consistente en una tupla
- */
-type ComplexNumber = [number, number];
+import {existsSync} from 'fs'; 
+import yargs from 'yargs';
+import chalk from "chalk"
+import { spawn } from 'child_process';
+import { hideBin } from 'yargs/helpers';
 
-/**
- * Definición de los índices de la parte real e imaginaria del número complejo
- */
-export enum ComplexIndex {
-  Real = 0,
-  Imaginary = 1,
+const argv = yargs(hideBin(process.argv))
+  .usage(chalk.blue('Usage: $0 [options] filename'))
+  .example(chalk.green('$0 -lwc file.txt'), 'Count lines, words and characters in file.txt')
+  .options({
+    l: { type: 'boolean', describe: 'Count number of lines' },
+    w: { type: 'boolean', describe: 'Count number of words' },
+    c: { type: 'boolean', describe: 'Count number of characters' },
+    p: { type: 'boolean', describe: 'Using pipe Stream Method'},
+  })
+  .demandCommand(1, chalk.red('Filename is required'))
+  .parseSync()
+
+const filename = argv._[0].toString();
+const countLines = argv.l;
+const countWords = argv.w;
+const countChars = argv.c;
+const pipeMethod = argv.p;
+
+if (filename) {
+  if (!existsSync(filename)) {
+    console.error(chalk.red(`File ${filename} does not exist`));
+    process.exit(1);
+  }
 }
 
-/**
- * Función para sumar dos números complejos
- * @param complexNum1 Primer Número Complejo
- * @param complexNum2 Segundo Número Complejo
- * @returns Un número complejo que representa la suma de los números complejos pasados por parámetro
- */
-export function add(complexNum1: ComplexNumber, complexNum2: ComplexNumber): ComplexNumber | undefined {
-  let result: ComplexNumber;
-  // Implementación de la suma de los números complejos
-  return result;
+const wcArgs = [];
+if (countLines) wcArgs.push('-l');
+if (countWords) wcArgs.push('-w');
+if (countChars) wcArgs.push('-c');
+
+if (wcArgs.length === 0) {
+  console.error(chalk.red('Please specify at least one of this option (-l, -w, -c)'));
+  process.exit(1);
 }
-…
+
+const wc = spawn('wc', wcArgs.concat(filename));
+
+if (pipeMethod) { 
+  wc.stdout.pipe(process.stdout); 
+} else {
+  let wcOutput = '';
+  wc.stdout.on('data', (piece) => wcOutput += piece);
+  wc.on('close', () => {
+    let wcOutputAsArray = wcOutput.split(/\s+/).slice(0, -2);
+    if (wcOutputAsArray[0]) console.log(`File helloworld.txt has ${wcOutputAsArray[0]} lines`);
+    if (wcOutputAsArray[1]) console.log(`File helloworld.txt has ${wcOutputAsArray[1]} words`);
+    if (wcOutputAsArray[2]) console.log(`File helloworld.txt has ${wcOutputAsArray[2]} characters`);
+  });
+}
 ```
-Que deberá cumplimentar con éxito las siguiente pruebas y condiciones:
 
-![Ej2 TDD](Assets/Imgs/Ej2TDD.png)
+Para implementar este ejericicio se ha utilizado yargs con las siguiente opciones: -l para contar líneas, -w para contar palabras, -c para contar caracteres, y -p para indicar si se quiere usar el método pipe de un Stream para redirigir la salida de un comando hacia otro.
 
-## Resultado
+El programa comprueba que se haya pasado un nombre de archivo como parámetro y si existe ese archivo. Si no existe, se muestra un mensaje de error y se interrumpe la ejecución.
 
-Ejemplo de ejecución:
+Se utiliza spawn del módulo child_process de node para ejecutar el comando wc que permite contar líneas, palabras y caracteres. Si se indicó la opción -p, se usa el método pipe para redirigir la salida de wc hacia la salida estándar del proceso actual. Si no se usó el método pipe, se registra un manejador de eventos para procesar la salida del comando wc y mostrar la información solicitada.
 
-![Ej2 Resultado Ejecución](Assets/Imgs/Ej2Result.png)
+## Ejemplo de ejecución
+
+![Ej2 Ejemplo Ejecución ](Assets/Imgs/WC.png)
 
 # Ejercicio 3 - Cliente y servidor para aplicación de registro de Funko Pops
 
@@ -235,6 +264,13 @@ Cuando se recibe una respuesta del servidor, la aplicación verifica el tipo de 
 
 ## Ejemplo de ejecución
 
+Servidor
+
+![Ej Ejecución Servidor](Assets/Imgs/Server.png)
+
+Cliente
+
+![Ej Ejecución Servidor](Assets/Imgs/Cliente.png)
 
 # Referencias
 * [Vídeo Instalación y uso de TypeDoc](https://drive.google.com/file/d/19LLLCuWg7u0TjjKz9q8ZhOXgbrKtPUme/view/)
